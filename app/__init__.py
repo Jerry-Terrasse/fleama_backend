@@ -9,4 +9,6 @@ app = Flask(__name__)
 app.config.update(cfg)
 db = SQLAlchemy(app)
 
-from app import models, routers
+app.secret_key = cfg['secret']
+
+from app import models, routers, login

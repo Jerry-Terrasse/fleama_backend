@@ -1,9 +1,10 @@
 from app import db
 from sqlalchemy import Table, Column, Integer, ForeignKey, Numeric, String, DECIMAL, ForeignKey
+from flask_login import UserMixin
 
-class User(db.Model):
+class User(db.Model, UserMixin):
     __tablename__ = 'users'
-    user_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(10), nullable=False)
     password = Column(String(20), nullable=False)
     user_state = Column(Numeric(2, 0), nullable=False)
@@ -19,6 +20,9 @@ class User(db.Model):
         self.username = username
         self.password = password
         self.user_state = user_state
+    
+    def get_id(self):
+        return self.user_id
 
 class Item(db.Model):
     __tablename__ = 'items'
