@@ -23,6 +23,7 @@ def get_user(user_id):
 @app.route('/users', methods=['POST'])
 def add_user():
     data = request.json
+    assert data
     new_user = User(username=data['username'], password=data['password'], user_state=data['user_state'])
     db.session.add(new_user)
     db.session.commit()
@@ -34,6 +35,7 @@ def update_user(user_id):
     if not user:
         return make_response(jsonify({'error': 'User not found'}), 404)
     data = request.json
+    assert data
     user.username = data['username']
     user.password = data['password']  # In a real-world scenario, you should hash the password
     user.user_state = data['user_state']
@@ -66,6 +68,7 @@ def get_item(item_id):
 @app.route('/items', methods=['POST'])
 def add_item():
     data = request.json
+    assert data
     new_item = Item(user_id=data['user_id'], item_name=data['item_name'], item_price=data['item_price'], item_state=data['item_state'])
     db.session.add(new_item)
     db.session.commit()
@@ -77,6 +80,7 @@ def update_item(item_id):
     if not item:
         return make_response(jsonify({'error': 'Item not found'}), 404)
     data = request.json
+    assert data
     item.user_id = data['user_id']
     item.item_name = data['item_name']
     item.item_price = data['item_price']
