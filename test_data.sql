@@ -74,3 +74,13 @@ INSERT INTO favorite (user_id, item_id, favorite_id) VALUES
 (3, 9, 5634),
 (4, 10, 1624),
 (5, 1, 3424);
+
+
+
+-- 1. 插入一条新记录到complaints表中
+INSERT INTO complaints (user_id, order_id, session_id) 
+VALUES (1, 1, 1); -- 假设有user_id, order_id, session_id的值为1
+
+-- 2. 检索刚刚插入的记录
+SELECT * FROM complaints 
+WHERE complaint_id = LAST_INSERT_ID();

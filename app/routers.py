@@ -161,6 +161,30 @@ def explore():
         'item_price': float(item.item_price),
     } for item in items])
 
+@app.route('/api/my_items', methods=['GET'])
+@login_required
+def my_items():
+    user: User = current_user._get_current_object() # type: ignore
+    items = Item.query.filter(Item.user_id == user.user_id).all()
+    return jsonify([{
+        'item_id': item.item_id,
+        'item_name': item.item_name,
+        'item_price': float(item.item_price),
+    } for item in items])
+
+@app.route('/api/item/<int:item_id>', methods=['GET'])
+@login_required
+def get_item_info(item_id):
+    item = Item.query.get(item_id)
+    if not item:
+        return make_response(jsonify({'error': 'Item not found'}), 404)
+    return jsonify({
+        'owner': item.user.username,
+        'id': item.item_id,
+        'name': item.item_name,
+        'price': float(item.item_price),
+        'description': item.description,
+    })
 
 # Sessions
 @app.route('/api/sessions', methods=['GET'])

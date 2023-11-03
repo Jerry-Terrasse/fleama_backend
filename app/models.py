@@ -1,5 +1,5 @@
 from app import db
-from sqlalchemy import Table, Column, Integer, ForeignKey, Numeric, String, DECIMAL, ForeignKey
+from sqlalchemy import Table, Column, Integer, ForeignKey, Numeric, String, DECIMAL, ForeignKey, Text
 from flask_login import UserMixin
 
 class User(db.Model, UserMixin):
@@ -31,12 +31,14 @@ class Item(db.Model):
     item_name = Column(String(10), nullable=False)
     item_price = Column(DECIMAL(10,2), nullable=False)
     item_state = Column(Numeric(2, 0), nullable=False)
+    description = Column(Text, nullable=True)
 
-    def __init__(self, user_id, item_name, item_price, item_state):
+    def __init__(self, user_id, item_name, item_price, item_state, description=None):
         self.user_id = user_id
         self.item_name = item_name
         self.item_price = item_price
         self.item_state = item_state
+        self.description = description
 
 class Cart(db.Model):
     __tablename__ = 'cart'

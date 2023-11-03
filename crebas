@@ -49,6 +49,7 @@ create table items
    item_name            varchar(10) not null,
    item_price           decimal(10,2) not null,
    item_state           numeric(2,0) not null,
+   description          longtext,
    primary key (item_id)
 );
 
@@ -159,3 +160,63 @@ alter table items modify item_id int not null auto_increment;
 alter table messages modify message_id int not null auto_increment;
 alter table orders modify order_id int not null auto_increment;
 alter table sessions modify session_id int not null auto_increment;
+
+create index FK_cart on cart (item_id);
+create index FK_cart2 on cart (user_id);
+create index FK_complaint_order on complaints (order_id);
+create index FK_complaint_session on complaints (session_id);
+
+CREATE VIEW `UserCartDetails` AS
+SELECT 
+  u.username,
+  i.item_name,
+  i.item_price,
+  i.description,
+  c.cart_id
+FROM 
+  cart c
+  JOIN items i ON c.item_id = i.item_id
+  JOIN users u ON c.user_id = u.user_id;
+
+
+CREATE VIEW `UserOrderStatus` AS
+SELECT 
+  u.username,
+  o.order_id,
+  i.item_name,
+  o.order_state
+FROM 
+  orders o
+  JOIN users u ON o.user_id = u.user_id
+  JOIN items i ON o.item_id = i.item_id;
+
+DELIMITER $$
+
+CREATE TRIGGER `SetInitialComplaintState`
+BEFORE INSERT ON `complaints`
+FOR EACH ROW
+BEGIN
+  SET NEW.complaint_state = 1;
+END$$
+
+DELIMITER ;
+
+
+DELIMITER $$
+
+CREATE FUNCTION `CalculateCartTotal`(userId INT) RETURNS DECIMAL(10,2)
+BEGIN
+  DECLARE cartTotal DECIMAL(10,2);
+
+  -- 计算特定用户购物车中的物品总价
+  SELECT SUM(item_price)
+  INTO cartTotal
+  FROM cart
+  INNER JOIN items ON cart.item_id = items.item_id
+  WHERE cart.user_id = userId;
+
+  -- 如果没有商品或者总价为空，则返回0.00
+  RETURN COALESCE(cartTotal, 0.00);
+END$$
+
+DELIMITER ;
