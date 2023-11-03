@@ -243,3 +243,17 @@ def add_message(session_id):
         return make_response(jsonify({'id': new_message.message_id}), 200)
     except Exception as e:
         return make_response(jsonify({'error': str(e)}), 400)
+
+
+# Orders
+@app.route('/api/orders', methods=['GET'])
+@login_required
+def get_orders():
+    user: User = current_user._get_current_object() # type: ignore
+    orders = db.session.query(Order, Item.item_name).filter(Order.user_id == user.user_id).join(Item).all()
+    return jsonify([{
+        'id': order.order_id,
+        'item_id': order.item_id,
+        'order_state': order.order_state,
+        'name': item_name
+    } for order, item_name in orders])
