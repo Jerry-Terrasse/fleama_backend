@@ -150,3 +150,12 @@ alter table user_session add constraint FK_user_session foreign key (session_id)
 alter table user_session add constraint FK_user_session2 foreign key (user_id)
       references users (user_id) on delete restrict on update restrict;
 
+
+alter table users modify user_id int not null auto_increment;
+alter table cart modify cart_id int not null auto_increment;
+alter table complaints modify complaint_id int not null auto_increment;
+alter table favorite modify favorite_id int not null auto_increment;
+alter table items modify item_id int not null auto_increment;
+alter table messages modify message_id int not null auto_increment;
+alter table orders modify order_id int not null auto_increment;
+alter table sessions modify session_id int not null auto_increment;

@@ -1,9 +1,11 @@
 from flask import request, jsonify, make_response
 from app import app, db
 from app.models import User, Item, Order, Session, Complaint, Cart, Favorite, Message
+from app.models import UserSession
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_login import login_user, current_user, logout_user, login_required
+from sqlalchemy import func
 
 admin = Admin(app, name='Admin', template_mode='bootstrap4')
 admin.add_view(ModelView(User, db.session))
@@ -14,6 +16,7 @@ admin.add_view(ModelView(Complaint, db.session))
 admin.add_view(ModelView(Cart, db.session))
 admin.add_view(ModelView(Favorite, db.session))
 admin.add_view(ModelView(Message, db.session))
+admin.add_view(ModelView(UserSession, db.session))
 
 # Login
 @app.route('/api/login', methods=['POST'])
@@ -132,3 +135,87 @@ def delete_item(item_id):
     db.session.delete(item)
     db.session.commit()
     return jsonify({'message': 'Item deleted successfully'}), 200
+
+@app.route('/api/explore', methods=['GET'])
+def explore():
+    num = 20
+    user: User = current_user._get_current_object() # type: ignore
+    if not user.is_authenticated: # type: ignore
+        items = (
+            Item.query.filter(Item.item_state != 0)
+            .order_by(func.rand()).limit(num).all()
+        )
+    else:
+        items = (
+            Item.query.filter(Item.item_state != 0)
+            .filter(Item.user_id != user.user_id)
+            .order_by(func.rand()).limit(num).all()
+        )
+    
+    if len(items) < num:
+        items = items * (num // len(items) + 1)
+        items = items[:num]
+    return jsonify([{
+        'item_id': item.item_id,
+        'item_name': item.item_name,
+        'item_price': float(item.item_price),
+    } for item in items])
+
+
+# Sessions
+@app.route('/api/sessions', methods=['GET'])
+@login_required
+def get_sessions():
+    user: User = current_user._get_current_object() # type: ignore
+    GroupUS = db.aliased(UserSession)
+    GroupUser = db.aliased(User)
+    sessions = (
+        db.session.query(
+            UserSession.session_id,
+            func.aggregate_strings(GroupUser.username, ', ').label('peoples')
+        ).filter(UserSession.user_id == user.user_id)
+        .join(Session).filter(Session.session_state != 0)
+        .join(GroupUS, GroupUS.session_id == Session.session_id)
+        .filter(GroupUS.user_id != user.user_id)
+        .join(GroupUser, GroupUser.user_id == GroupUS.user_id)
+        .group_by(Session.session_id)
+    ).all()
+    return jsonify([{
+        'session_id': sid,
+        'peoples': peoples
+    } for sid, peoples in sessions])
+
+@app.route('/api/messages/<int:session_id>', methods=['GET'])
+@login_required
+def get_messages(session_id):
+    user: User = current_user._get_current_object() # type: ignore
+    us = db.session.query(True).filter(UserSession.user_id == user.user_id, UserSession.session_id == session_id).first()
+    if not us:
+        return make_response(jsonify({'error': 'User not in session'}), 403)
+    messages = (
+        db.session.query(Message, User.username)
+        .filter(Message.session_id == session_id)
+        .join(User)
+        .all()
+    )
+    return jsonify([{
+        'id': message.message_id,
+        'user': user,
+        'content': message.message_content,
+    } for message, user in messages])
+
+@app.route('/api/messages/<int:session_id>', methods=['POST'])
+@login_required
+def add_message(session_id):
+    user: User = current_user._get_current_object() # type: ignore
+    us = db.session.query(True).filter(UserSession.user_id == user.user_id, UserSession.session_id == session_id).first()
+    if not us:
+        return make_response(jsonify({'error': 'User not in session'}), 403)
+    try:
+        content = request.json['content'] # type: ignore
+        new_message = Message(session_id=session_id, user_id=user.user_id, message_content=content)
+        db.session.add(new_message)
+        db.session.commit()
+        return make_response(jsonify({'id': new_message.message_id}), 200)
+    except Exception as e:
+        return make_response(jsonify({'error': str(e)}), 400)
